@@ -1,60 +1,63 @@
-# sv
+# ProxiedMail PWA
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+This is an SvelteKit PWA dashboard for ProxiedMail.
 
-## Creating a project
-
-If you're seeing this, you've probably already done this step. Congrats!
+## Install
 
 ```sh
-# create a new project
-npx sv create my-app
+npm install
 ```
 
-To recreate this project with the same configuration:
+## Development
 
-```sh
-# recreate this project
-npx sv@0.15.3 create --template minimal --types ts --no-install proxiedmail-pwa
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Start the Vite development server:
 
 ```sh
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-During development, Vite proxies `/api/v1/*` and `/gapi/*` to `https://proxiedmail.com`, so the app can use the same-origin API paths without browser CORS issues.
+During development, Vite proxies `/api/v1/*` and `/gapi/*` to `https://proxiedmail.com`, so the app can call the backend without browser CORS issues.
 
-## Building
+## Checks
 
-To create a production version of your app:
+Run the Svelte and TypeScript checks with:
+
+```sh
+npm run check
+```
+
+## Build
+
+Create the production build with:
 
 ```sh
 npm run build
 ```
 
-You can preview the production build with `npm run preview`.
+You can preview the built app with:
 
-## Running with the local proxy
+```sh
+npm run preview
+```
 
-To serve the built PWA and proxy backend requests to `https://proxiedmail.com`, use:
+## Local proxy server
+
+To serve the built app and proxy backend requests to `https://proxiedmail.com`:
 
 ```sh
 npm run serve
 ```
 
-If you already built the app, you can start only the server with:
+If the app is already built, start only the local server with:
 
 ```sh
 npm run start
 ```
 
-The server listens on `http://127.0.0.1:3000` by default and forwards requests for `/api/v1/*` and `/gapi/*` to `https://proxiedmail.com`.
+The local server listens on `http://127.0.0.1:3000` by default and forwards `/api/v1/*` and `/gapi/*` to `https://proxiedmail.com`.
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+You can override the bind address and port with `HOST` and `PORT`, for example:
+
+```sh
+HOST=127.0.0.1 PORT=3100 npm run start
+```
