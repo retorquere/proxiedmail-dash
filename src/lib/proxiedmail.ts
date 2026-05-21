@@ -216,7 +216,16 @@ function asString(value: unknown, fallback = ''): string {
 }
 
 function asBoolean(value: unknown): boolean {
-	return value === true;
+	if (value === true || value === 1) {
+		return true;
+	}
+
+	if (typeof value === 'string') {
+		const normalized = value.trim().toLowerCase();
+		return normalized === 'true' || normalized === '1';
+	}
+
+	return false;
 }
 
 function asNumber(value: unknown, fallback = 0): number {
@@ -232,6 +241,11 @@ function asNumber(value: unknown, fallback = 0): number {
 	}
 
 	return fallback;
+}
+
+function isJsonContentType(contentType: string): boolean {
+	const normalized = contentType.toLowerCase();
+	return normalized.includes('application/json') || normalized.includes('+json');
 }
 
 function normalizeBaseUrl(baseUrl: string): string {
@@ -470,10 +484,9 @@ export function createProxiedMailClient(getSession: () => SessionConfig) {
 		const baseUrl = normalizeBaseUrl(session.baseUrl);
 
 		if (options.auth === 'api') {
-			const token = session.apiToken || session.oauthToken;
-			if (token) {
-				const normalized = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
-				headers.set('Authorization', normalized);
+			if (session.apiToken) {
+				headers.set('Authorization', session.apiToken);
+				headers.set('Token', session.apiToken);
 			}
 		}
 
@@ -493,7 +506,7 @@ export function createProxiedMailClient(getSession: () => SessionConfig) {
 		});
 
 		const contentType = response.headers.get('content-type') ?? '';
-		const payload = contentType.includes('application/json') ? await response.json() : await response.text();
+		const payload = isJsonContentType(contentType) ? await response.json() : await response.text();
 
 		if (!response.ok) {
 			const message = extractErrorMessage(payload);
@@ -539,7 +552,16 @@ export function createProxiedMailClient(getSession: () => SessionConfig) {
 				auth: 'bearer'
 			});
 
-			return asString(payload.token);
+			const token =
+				asString(payload.token) ||
+				asString(asRecord(payload.data).token) ||
+				asString(asRecord(asRecord(payload.data).attributes).token);
+
+			if (!token) {
+				throw new Error('Permanent API token was not returned by the server');
+			}
+
+			return token;
 		},
 		registerUser: async (username: string, password: string) => {
 			return request<Record<string, unknown>>('/api/v1/users', {
@@ -559,7 +581,7 @@ export function createProxiedMailClient(getSession: () => SessionConfig) {
 			});
 		},
 		getUserProfile: async (): Promise<UserProfile> => {
-			const payload = await request<Record<string, unknown>>('/api/v1/users/me?updateFrontCache=1', { auth: 'api' });
+			const payload = await request<Record<string, unknown>>('/api/v1/users/me', { auth: 'api' });
 			return normalizeUserProfile(payload);
 		},
 		listProxyBindings: async (): Promise<{ quota: DashboardQuota; bindings: ProxyBinding[] }> => {

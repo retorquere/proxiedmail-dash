@@ -5,7 +5,6 @@
 	let localPart = $state('');
 	let domain = $state('');
 	let realAddress = $state('');
-	let callbackUrl = $state('');
 	let isBrowsable = $state(true);
 	let wildcardAutoCreate = $state(false);
 
@@ -28,12 +27,11 @@
 			proxyAddress: `${localPart.trim()}@${domain.trim()}`,
 			realAddresses: [realAddress.trim()],
 			isBrowsable,
-			callbackUrl,
+			callbackUrl: '',
 			wildcardAutoCreate
 		});
 
 		localPart = '';
-		callbackUrl = '';
 		wildcardAutoCreate = false;
 	}
 </script>
@@ -59,41 +57,38 @@
 	</div>
 </div>
 
-<div class="grid-2 workspace-top">
-	<section class="panel create-panel">
-		<p class="eyebrow">New proxy email</p>
-		<h2>Create a proxy email</h2>
-		<div class="inline-form grow">
-			<input bind:value={localPart} placeholder="billing.novabridge" />
-			<select bind:value={domain}>
-				{#each $workspace.dashboard.availableDomains as option}
-					<option value={option.domain}>{option.displayName}</option>
-				{/each}
-			</select>
-		</div>
-		<div class="inline-form grow">
-			<select bind:value={realAddress}>
-				{#each $workspace.dashboard.verifiedEmails as email}
-					<option value={email}>{email}</option>
-				{/each}
-			</select>
-			<input bind:value={callbackUrl} placeholder="Optional callback URL" />
-		</div>
-		<div class="stack-inline wrap">
-			<label class="field checkbox-row slim-check">
-				<input type="checkbox" bind:checked={isBrowsable} />
-				<span>Store received emails</span>
-			</label>
-			<label class="field checkbox-row slim-check">
-				<input type="checkbox" bind:checked={wildcardAutoCreate} />
-				<span>Enable wildcard auto-create</span>
-			</label>
-		</div>
-		<button class="button" type="button" onclick={handleCreateBinding}>Create proxy email</button>
-	</section>
-</div>
+<section class="panel create-panel compact-create-panel">
+	<div class="compact-create-head">
+		<p class="eyebrow">New proxy</p>
+		<h2>Create proxy</h2>
+	</div>
+	<div class="compact-create-grid compact-create-address">
+		<input bind:value={localPart} placeholder="billing.novabridge" />
+		<select bind:value={domain}>
+			{#each $workspace.dashboard.availableDomains as option}
+				<option value={option.domain}>{option.displayName}</option>
+			{/each}
+		</select>
+		<select bind:value={realAddress}>
+			{#each $workspace.dashboard.verifiedEmails as email}
+				<option value={email}>{email}</option>
+			{/each}
+		</select>
+		<button class="button" type="button" onclick={handleCreateBinding}>Create</button>
+	</div>
+	<div class="compact-create-options">
+		<label class="checkbox-row slim-check compact-check">
+			<input type="checkbox" bind:checked={isBrowsable} />
+			<span>Store received emails</span>
+		</label>
+		<label class="checkbox-row slim-check compact-check">
+			<input type="checkbox" bind:checked={wildcardAutoCreate} />
+			<span>Enable wildcard auto-create</span>
+		</label>
+	</div>
+</section>
 
-<div class="stack-lg">
+<div class="proxies-list">
 	{#each $workspace.dashboard.bindings as binding}
 		<ProxyBindingCard
 			binding={binding}
@@ -105,3 +100,72 @@
 		/>
 	{/each}
 </div>
+
+<style>
+	.compact-create-panel {
+		display: grid;
+		gap: 0.75rem;
+		padding: 1rem;
+	}
+
+	.compact-create-head {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+
+	.compact-create-head .eyebrow {
+		margin-bottom: 0;
+	}
+
+	.compact-create-head h2 {
+		font-size: 1rem;
+	}
+
+	.compact-create-grid {
+		display: grid;
+		grid-template-columns: 1.2fr 0.9fr 1fr auto;
+		gap: 0.7rem;
+		align-items: center;
+	}
+
+	.compact-create-options {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.55rem;
+	}
+
+	.compact-check {
+		padding: 0.5rem 0.7rem;
+		font-size: 0.9rem;
+	}
+
+	.proxies-list {
+		display: grid;
+		gap: 1rem;
+		align-items: start;
+	}
+
+	@media (max-width: 1200px) {
+		.compact-create-grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+
+		.compact-create-grid .button {
+			grid-column: 1 / -1;
+		}
+	}
+
+	@media (max-width: 720px) {
+		.compact-create-head {
+			align-items: start;
+			flex-direction: column;
+			gap: 0.2rem;
+		}
+
+		.compact-create-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>

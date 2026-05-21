@@ -31,6 +31,10 @@
 
 		await workspace.resendConfirmation(confirmationEmail);
 	}
+
+	function isVerifiedAddress(email: string, isVerified: boolean) {
+		return isVerified || $workspace.dashboard.verifiedEmails.includes(email);
+	}
 </script>
 
 <svelte:head>
@@ -54,14 +58,15 @@
 		<h2>Verified destinations</h2>
 		<div class="list-block">
 			{#each $workspace.dashboard.realEmails as entry}
+				{@const verified = isVerifiedAddress(entry.email, entry.isVerified)}
 				<article class="list-row">
 					<div>
 						<strong>{entry.email}</strong>
 						<p>{entry.isDefault ? 'Default destination' : 'Secondary destination'}</p>
 					</div>
 					<div class="stack-inline">
-						<span class:good-pill={entry.isVerified} class:neutral-pill={!entry.isVerified} class="pill">
-							{entry.isVerified ? 'Verified' : 'Pending'}
+						<span class:good-pill={verified} class:neutral-pill={!verified} class="pill">
+							{verified ? 'Verified' : 'Pending'}
 						</span>
 					</div>
 				</article>

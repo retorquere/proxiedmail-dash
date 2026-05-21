@@ -150,15 +150,15 @@ async function refreshDashboard() {
 	try {
 		const [user, proxyBundle, availableDomains, customDomains, realEmails, verifiedEmails, usedOn, passwords, settings, productTip, microsoftDomainsEnabled] =
 			await Promise.all([
-				api.getUserProfile(),
+				safe(() => api.getUserProfile(), null),
 				api.listProxyBindings(),
-				api.listAvailableDomains(),
-				api.listCustomDomains(),
-				api.listRealEmails(),
-				api.listVerifiedEmails(),
-				api.listUsedOn(),
-				api.listPasswords(),
-				api.listSettings(),
+				safe(() => api.listAvailableDomains(), []),
+				safe(() => api.listCustomDomains(), []),
+				safe(() => api.listRealEmails(), []),
+				safe(() => api.listVerifiedEmails(), []),
+				safe(() => api.listUsedOn(), []),
+				safe(() => api.listPasswords(), []),
+				safe(() => api.listSettings(), []),
 				safe(() => api.getProductTip(), null),
 				safe(() => api.getMicrosoftDomainsEnabled(), false)
 			]);
@@ -228,12 +228,7 @@ export const workspace = {
 			const bearerToken = oauthToken.startsWith('Bearer ') ? oauthToken : `Bearer ${oauthToken}`;
 			patch({ session: { ...get(store).session, oauthToken: bearerToken } });
 
-			let apiToken = bearerToken;
-			try {
-				apiToken = await api.fetchApiToken();
-			} catch {
-				apiToken = bearerToken;
-			}
+			const apiToken = await api.fetchApiToken();
 
 			const nextSession = { ...get(store).session, oauthToken: bearerToken, apiToken };
 			writeStoredSession(nextSession);

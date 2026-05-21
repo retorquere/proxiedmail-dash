@@ -112,168 +112,213 @@
 	}
 </script>
 
-<div class="panel binding-card" id={binding.id}>
-	<div class="binding-head">
-		<div>
-			<p class="eyebrow">Proxy email</p>
-			<h2>{binding.proxyAddress}</h2>
-			<p class="muted">{binding.description || 'No internal description yet.'}</p>
-		</div>
-		<div class="stack-inline">
-			<span class:good-pill={binding.isBrowsable} class:neutral-pill={!binding.isBrowsable} class="pill">
-				{binding.isBrowsable ? 'Stored emails' : 'Forward only'}
-			</span>
-			<span class:accent-pill={wildcardAutoCreate} class:neutral-pill={!wildcardAutoCreate} class="pill">
-				{wildcardAutoCreate ? 'Wildcard on' : 'Wildcard off'}
-			</span>
-		</div>
-	</div>
-
-	<div class="binding-grid">
-		<section>
-			<p class="label">Routing</p>
-			<label class="field">
-				<span>Description</span>
-				<input bind:value={description} placeholder="What is this alias for?" />
-			</label>
-			<label class="field">
-				<span>Callback URL</span>
-				<input bind:value={callbackUrl} placeholder="https://hooks.example.com/inbound" />
-			</label>
-			<label class="field checkbox-row">
-				<input type="checkbox" bind:checked={wildcardAutoCreate} />
-				<span>Auto-create wildcard matches</span>
-			</label>
-			<label class="field">
-				<span>Add another real email</span>
-				<input bind:value={extraRealAddress} placeholder="alias owner address" />
-			</label>
-			<div class="stack-inline actions">
-				<button class="button" type="button" onclick={handleSave}>Save binding</button>
-				<button class="button button-secondary" type="button" onclick={handleDelete}>Delete</button>
+<div class="binding-row" id={binding.id}>
+	<details class="binding-details">
+		<summary class="binding-summary-row">
+			<div class="binding-identity">
+				<h2>{binding.proxyAddress}</h2>
+				<p class="muted binding-subline">
+					{#if binding.description}
+						{binding.description}
+					{:else if binding.realAddresses.length}
+						{binding.realAddresses[0].email}
+						{#if binding.realAddresses.length > 1}
+							+{binding.realAddresses.length - 1} more
+						{/if}
+					{:else}
+						No forwarding destination
+					{/if}
+				</p>
 			</div>
-		</section>
 
-		<section>
-			<p class="label">Forwarding destinations</p>
-			<div class="token-list">
-				{#each binding.realAddresses as address}
-					<label class="token chip-toggle">
-						<input
-							type="checkbox"
-							checked={toggledAddresses[address.email] ?? address.isEnabled}
-							onchange={(event) => {
-								toggledAddresses = {
-									...toggledAddresses,
-									[address.email]: (event.currentTarget as HTMLInputElement).checked
-								};
-							}}
-						/>
-						<span>{address.email}</span>
-						<strong>{address.isVerified ? 'verified' : 'needs verification'}</strong>
+			<div class="binding-row-stats">
+				<span><strong>{binding.realAddresses.length}</strong> dest.</span>
+				<span><strong>{binding.receivedEmails}</strong> received</span>
+				<span><strong>{contacts.length}</strong> contacts</span>
+			</div>
+
+			<div class="binding-row-badges">
+				<span class:good-pill={binding.isBrowsable} class:neutral-pill={!binding.isBrowsable} class="pill">
+					{binding.isBrowsable ? 'Stored emails' : 'Forward only'}
+				</span>
+				<span class:accent-pill={wildcardAutoCreate} class:neutral-pill={!wildcardAutoCreate} class="pill">
+					{wildcardAutoCreate ? 'Wildcard on' : 'Wildcard off'}
+				</span>
+			</div>
+
+			<div class="binding-row-toggle">
+				<span>Manage</span>
+			</div>
+		</summary>
+
+		<div class="binding-details-body">
+			<div class="binding-grid">
+				<section class="detail-section">
+					<p class="label">Routing</p>
+					<label class="field">
+						<span>Description</span>
+						<input bind:value={description} placeholder="What is this alias for?" />
 					</label>
-				{/each}
-			</div>
-			<p class="label">Usage tags</p>
-			<label class="field">
-				<span>Comma-separated websites or systems</span>
-				<input bind:value={usedOnInput} placeholder="Stripe, Airtable, Linear" />
-			</label>
-			<button class="button button-secondary" type="button" onclick={handleUsedOnSave}>Save tags</button>
-			<p class="label">Stored password</p>
-			<div class="inline-form">
-				<input bind:value={password} placeholder="Store or rotate password" />
-				<button class="button button-secondary" type="button" onclick={handlePasswordSave}>Store</button>
-			</div>
-		</section>
-	</div>
+					<label class="field">
+						<span>Callback URL</span>
+						<input bind:value={callbackUrl} placeholder="https://hooks.example.com/inbound" />
+					</label>
+					<label class="field checkbox-row">
+						<input type="checkbox" bind:checked={wildcardAutoCreate} />
+						<span>Auto-create wildcard matches</span>
+					</label>
+					<label class="field">
+						<span>Add another real email</span>
+						<input bind:value={extraRealAddress} placeholder="alias owner address" />
+					</label>
+					<div class="stack-inline actions">
+						<button class="button" type="button" onclick={handleSave}>Save binding</button>
+						<button class="button button-secondary" type="button" onclick={handleDelete}>Delete</button>
+					</div>
+				</section>
 
-	<div class="binding-grid binding-grid-secondary">
-		<section>
-			<div class="section-head compact-head">
-				<div>
-					<p class="eyebrow">Contacts</p>
-					<h3>Reply-capable senders</h3>
-				</div>
-				<button class="button button-secondary" type="button" onclick={() => workspace.loadContacts(binding.id)}>
-					Refresh contacts
-				</button>
+				<section class="detail-section">
+					<p class="label">Forwarding destinations</p>
+					<div class="token-list">
+						{#each binding.realAddresses as address}
+							<label class="token chip-toggle">
+								<input
+									type="checkbox"
+									checked={toggledAddresses[address.email] ?? address.isEnabled}
+									onchange={(event) => {
+										toggledAddresses = {
+											...toggledAddresses,
+											[address.email]: (event.currentTarget as HTMLInputElement).checked
+										};
+									}}
+								/>
+								<span>{address.email}</span>
+								<strong>{address.isVerified ? 'verified' : 'needs verification'}</strong>
+							</label>
+						{/each}
+					</div>
+					<p class="label">Usage tags</p>
+					<label class="field">
+						<span>Comma-separated websites or systems</span>
+						<input bind:value={usedOnInput} placeholder="Stripe, Airtable, Linear" />
+					</label>
+					<button class="button button-secondary" type="button" onclick={handleUsedOnSave}>Save tags</button>
+					<p class="label">Stored password</p>
+					<div class="inline-form">
+						<input bind:value={password} placeholder="Store or rotate password" />
+						<button class="button button-secondary" type="button" onclick={handlePasswordSave}>Store</button>
+					</div>
+				</section>
 			</div>
-			<div class="inline-form grow">
-				<input bind:value={contactEmail} placeholder="contact@example.com" />
-				<input bind:value={contactDescription} placeholder="Relationship or context" />
-				<button class="button" type="button" onclick={handleCreateContact}>Add</button>
-			</div>
-			{#if contacts.length}
-				<div class="list-block">
-					{#each contacts as contact}
-						<article class="list-row">
-							<div>
-								<strong>{contact.recipientEmail}</strong>
-								<p>{contact.description || 'No label'}</p>
-							</div>
-							<code>{contact.reverseProxyAddress}</code>
-						</article>
-					{/each}
-				</div>
-			{:else}
-				<p class="muted">No contacts loaded yet for this proxy email.</p>
-			{/if}
-		</section>
 
-		<section>
-			<div class="section-head compact-head">
-				<div>
-					<p class="eyebrow">Stored emails</p>
-					<h3>Recent inbound mail</h3>
-				</div>
-				<button class="button button-secondary" type="button" onclick={() => workspace.loadReceivedEmails(binding.id)}>
-					Load messages
-				</button>
-			</div>
-			{#if receivedLinks.length}
-				<div class="list-block">
-					{#each receivedLinks as mail}
-						<button class="list-row clickable" type="button" onclick={() => handleOpenEmail(mail.id)}>
-							<div>
-								<strong>{mail.subject || 'Untitled message'}</strong>
-								<p>{mail.senderEmail}</p>
-							</div>
-							<span>{mail.attachmentsCounter} attachments</span>
+			<div class="binding-grid binding-grid-secondary">
+				<section class="detail-section">
+					<div class="section-head compact-head">
+						<div>
+							<p class="eyebrow">Contacts</p>
+							<h3>Reply-capable senders</h3>
+						</div>
+						<button class="button button-secondary" type="button" onclick={() => workspace.loadContacts(binding.id)}>
+							Refresh contacts
 						</button>
-					{/each}
-				</div>
-				{#if openMessageId && receivedDetailsById[openMessageId]}
-					<article class="mail-preview">
-						<h4>{receivedDetailsById[openMessageId].subject}</h4>
-						<p class="muted">From {receivedDetailsById[openMessageId].senderEmail}</p>
-						<pre>{receivedDetailsById[openMessageId].bodyPlain || 'No plain-text body available.'}</pre>
-					</article>
-				{/if}
-			{:else}
-				<p class="muted">Load recent messages for this proxy email.</p>
-			{/if}
-		</section>
-	</div>
+					</div>
+					<div class="inline-form grow">
+						<input bind:value={contactEmail} placeholder="contact@example.com" />
+						<input bind:value={contactDescription} placeholder="Relationship or context" />
+						<button class="button" type="button" onclick={handleCreateContact}>Add</button>
+					</div>
+					{#if contacts.length}
+						<div class="list-block">
+							{#each contacts as contact}
+								<article class="list-row">
+									<div>
+										<strong>{contact.recipientEmail}</strong>
+										<p>{contact.description || 'No label'}</p>
+									</div>
+									<code>{contact.reverseProxyAddress}</code>
+								</article>
+							{/each}
+						</div>
+					{:else}
+						<p class="muted">No contacts loaded yet for this proxy email.</p>
+					{/if}
+				</section>
+
+				<section class="detail-section">
+					<div class="section-head compact-head">
+						<div>
+							<p class="eyebrow">Stored emails</p>
+							<h3>Recent inbound mail</h3>
+						</div>
+						<button class="button button-secondary" type="button" onclick={() => workspace.loadReceivedEmails(binding.id)}>
+							Load messages
+						</button>
+					</div>
+					{#if receivedLinks.length}
+						<div class="list-block">
+							{#each receivedLinks as mail}
+								<button class="list-row clickable" type="button" onclick={() => handleOpenEmail(mail.id)}>
+									<div>
+										<strong>{mail.subject || 'Untitled message'}</strong>
+										<p>{mail.senderEmail}</p>
+									</div>
+									<span>{mail.attachmentsCounter} attachments</span>
+								</button>
+							{/each}
+						</div>
+						{#if openMessageId && receivedDetailsById[openMessageId]}
+							<article class="mail-preview">
+								<h4>{receivedDetailsById[openMessageId].subject}</h4>
+								<p class="muted">From {receivedDetailsById[openMessageId].senderEmail}</p>
+								<pre>{receivedDetailsById[openMessageId].bodyPlain || 'No plain-text body available.'}</pre>
+							</article>
+						{/if}
+					{:else}
+						<p class="muted">Load recent messages for this proxy email.</p>
+					{/if}
+				</section>
+			</div>
+		</div>
+	</details>
 </div>
 
 <style>
-	.binding-card {
+	.binding-row {
+		border: 1px solid var(--panel-border);
+		border-radius: 18px;
+		background: var(--panel);
+		box-shadow: var(--shadow);
+	}
+
+	.binding-details {
+		overflow: hidden;
+	}
+
+	.binding-summary-row {
 		display: grid;
-		gap: 1.5rem;
-	}
-
-	.binding-head {
-		display: flex;
-		justify-content: space-between;
+		grid-template-columns: minmax(0, 1.7fr) auto auto auto;
 		gap: 1rem;
-		align-items: flex-start;
-		flex-wrap: wrap;
+		align-items: center;
+		padding: 0.9rem 1rem;
+		cursor: pointer;
+		list-style: none;
 	}
 
-	.binding-head h2 {
+	.binding-summary-row::-webkit-details-marker {
+		display: none;
+	}
+
+	.binding-identity {
+		min-width: 0;
+		display: grid;
+		gap: 0.2rem;
+	}
+
+	.binding-identity h2 {
 		margin: 0;
-		font-size: 1.2rem;
+		font-size: 1rem;
+		line-height: 1.15;
+		word-break: break-word;
 	}
 
 	.binding-grid {
@@ -286,15 +331,54 @@
 		align-items: start;
 	}
 
-	.actions {
-		margin-top: 0.75rem;
+	.binding-subline {
+		font-size: 0.88rem;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
-	.token-list {
+	.binding-row-stats {
+		display: grid;
+		grid-template-columns: repeat(3, auto);
+		gap: 0.9rem;
+		font-size: 0.82rem;
+		color: var(--muted);
+	}
+
+	.binding-row-stats strong {
+		color: var(--text);
+	}
+
+	.binding-row-badges {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.6rem;
-		margin-bottom: 1rem;
+		gap: 0.45rem;
+	}
+
+	.binding-row-toggle {
+		font-size: 0.82rem;
+		font-weight: 700;
+		color: var(--accent);
+		white-space: nowrap;
+	}
+
+	.binding-details[open] .binding-row-toggle {
+		color: var(--accent-strong);
+	}
+
+	.binding-details-body {
+		display: grid;
+		gap: 1.25rem;
+		padding: 0 1rem 1rem;
+		border-top: 1px solid var(--panel-border);
+	}
+
+	.detail-section {
+		padding: 0.95rem;
+		border: 1px solid var(--panel-border);
+		border-radius: 16px;
+		background: rgba(255, 255, 255, 0.55);
 	}
 
 	.chip-toggle {
@@ -364,10 +448,42 @@
 		font: inherit;
 	}
 
+	.actions {
+		margin-top: 0.75rem;
+	}
+
+	.token-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.6rem;
+		margin-bottom: 1rem;
+	}
+
 	@media (max-width: 900px) {
+		.binding-summary-row,
 		.binding-grid,
 		.inline-form.grow {
 			grid-template-columns: 1fr;
+		}
+
+		.binding-row-stats {
+			grid-template-columns: repeat(3, minmax(0, auto));
+		}
+	}
+
+	@media (max-width: 640px) {
+		.binding-summary-row {
+			padding: 0.85rem;
+		}
+
+		.binding-row-stats {
+			grid-template-columns: 1fr;
+			gap: 0.25rem;
+		}
+
+		.list-row {
+			align-items: start;
+			flex-direction: column;
 		}
 	}
 </style>
