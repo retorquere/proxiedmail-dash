@@ -4,6 +4,7 @@
 	let replaceSource = $state('');
 	let replaceTarget = $state('');
 	let confirmationEmail = $state('');
+	let search = $state('');
 
 	$effect(() => {
 		if (!replaceSource && $workspace.dashboard.realEmails.length > 0) {
@@ -35,6 +36,44 @@
 	function isVerifiedAddress(email: string, isVerified: boolean) {
 		return isVerified || $workspace.dashboard.verifiedEmails.includes(email);
 	}
+
+	function includesSearch(values: string[], term: string) {
+		const normalized = term.trim().toLowerCase();
+		if (!normalized) {
+			return true;
+		}
+
+		return values.join(' ').toLowerCase().includes(normalized);
+	}
+
+	const filteredRealEmails = $derived(
+		$workspace.dashboard.realEmails.filter((entry) =>
+			includesSearch(
+				[
+					entry.email,
+					entry.isDefault ? 'default destination' : 'secondary destination',
+					isVerifiedAddress(entry.email, entry.isVerified) ? 'verified' : 'pending'
+				],
+				search
+			)
+		)
+	);
+
+	const filteredAvailableDomains = $derived(
+		$workspace.dashboard.availableDomains.filter((domain) =>
+			includesSearch([domain.domain, domain.displayName, domain.isPremium ? 'premium' : 'included'], search)
+		)
+	);
+
+	const filteredCustomDomains = $derived(
+		$workspace.dashboard.customDomains.filter((domain) =>
+			includesSearch([domain.domain, domain.displayName, String(domain.status)], search)
+		)
+	);
+
+	const filteredVerifiedEmails = $derived(
+		$workspace.dashboard.verifiedEmails.filter((email) => includesSearch([email], search))
+	);
 </script>
 
 <svelte:head>
@@ -52,12 +91,16 @@
 	</div>
 </div>
 
+<section class="panel compact-search-panel">
+	<input bind:value={search} placeholder="Search addresses, domains, and verification state" />
+</section>
+
 <div class="grid-2">
 	<section class="panel">
 		<p class="eyebrow">Real inboxes</p>
 		<h2>Verified destinations</h2>
 		<div class="list-block">
-			{#each $workspace.dashboard.realEmails as entry}
+			{#each filteredRealEmails as entry}
 				{@const verified = isVerifiedAddress(entry.email, entry.isVerified)}
 				<article class="list-row">
 					<div>
@@ -71,6 +114,9 @@
 					</div>
 				</article>
 			{/each}
+			{#if filteredRealEmails.length === 0}
+				<p class="muted">No real addresses match that search.</p>
+			{/if}
 		</div>
 	</section>
 
@@ -108,7 +154,7 @@
 		<p class="eyebrow">Domain inventory</p>
 		<h2>Available proxy domains</h2>
 		<div class="token-list">
-			{#each $workspace.dashboard.availableDomains as domain}
+			{#each filteredAvailableDomains as domain}
 				<span class="token domain-token">
 					<strong>{domain.displayName}</strong>
 					<small>{domain.isPremium ? 'premium' : 'included'}</small>
@@ -123,9 +169,9 @@
 	<section class="panel">
 		<p class="eyebrow">Custom domains</p>
 		<h2>Domains tied to your account</h2>
-		{#if $workspace.dashboard.customDomains.length}
+		{#if filteredCustomDomains.length}
 			<div class="list-block">
-				{#each $workspace.dashboard.customDomains as domain}
+				{#each filteredCustomDomains as domain}
 					<article class="list-row">
 						<div>
 							<strong>{domain.domain}</strong>
@@ -136,14 +182,24 @@
 				{/each}
 			</div>
 		{:else}
-			<p class="muted">No custom domains were returned by the API for this account.</p>
+			<p class="muted">No custom domains match that search.</p>
 		{/if}
 		<div class="divider"></div>
 		<p class="eyebrow">Verified picker</p>
 		<div class="token-list">
-			{#each $workspace.dashboard.verifiedEmails as email}
+			{#each filteredVerifiedEmails as email}
 				<span class="token">{email}</span>
 			{/each}
 		</div>
 	</section>
 </div>
+
+<style>
+	.compact-search-panel {
+		padding: 0.85rem 1rem;
+	}
+
+	.compact-search-panel input {
+		margin: 0;
+	}
+</style>

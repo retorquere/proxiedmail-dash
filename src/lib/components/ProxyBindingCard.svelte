@@ -62,6 +62,10 @@
 			.filter(Boolean);
 	}
 
+	function isProxyEnabled() {
+		return binding.realAddresses.some((address) => toggledAddresses[address.email] ?? address.isEnabled);
+	}
+
 	async function handleSave() {
 		await workspace.saveProxyBinding({
 			id: binding.id,
@@ -96,6 +100,19 @@
 		await workspace.saveUsedOn(binding.id, toTagList(usedOnInput));
 	}
 
+	async function handleToggleBindingEnabled(nextEnabled: boolean) {
+		toggledAddresses = Object.fromEntries(binding.realAddresses.map((address) => [address.email, nextEnabled]));
+
+		await workspace.saveProxyBinding({
+			id: binding.id,
+			proxyAddress: binding.proxyAddress,
+			description,
+			callbackUrl,
+			wildcardAutoCreate,
+			realAddresses: Object.fromEntries(binding.realAddresses.map((address) => [address.email, { isEnabled: nextEnabled }]))
+		});
+	}
+
 	async function handleCreateContact() {
 		if (!contactEmail.trim()) {
 			return;
@@ -115,6 +132,26 @@
 <div class="binding-row" id={binding.id}>
 	<details class="binding-details">
 		<summary class="binding-summary-row">
+			<div class="binding-summary-enable">
+				<button
+					type="button"
+					class:binding-enable-action={isProxyEnabled()}
+					class:binding-disable-action={!isProxyEnabled()}
+					class="binding-toggle-action"
+					aria-pressed={isProxyEnabled()}
+					onclick={(event) => {
+						event.preventDefault();
+						event.stopPropagation();
+						handleToggleBindingEnabled(!isProxyEnabled());
+					}}
+				>
+					<span class="binding-toggle-switch" aria-hidden="true">
+						<span class="binding-toggle-knob"></span>
+					</span>
+					<span class="binding-toggle-copy">{isProxyEnabled() ? 'On' : 'Off'}</span>
+				</button>
+			</div>
+
 			<div class="binding-identity">
 				<h2>{binding.proxyAddress}</h2>
 				<p class="muted binding-subline">
@@ -132,9 +169,9 @@
 			</div>
 
 			<div class="binding-row-stats">
-				<span><strong>{binding.realAddresses.length}</strong> dest.</span>
-				<span><strong>{binding.receivedEmails}</strong> received</span>
-				<span><strong>{contacts.length}</strong> contacts</span>
+				<span class="binding-stat"><strong>{binding.realAddresses.length}</strong> dest.</span>
+				<span class="binding-stat"><strong>{binding.receivedEmails}</strong> received</span>
+				<span class="binding-stat"><strong>{contacts.length}</strong> contacts</span>
 			</div>
 
 			<div class="binding-row-badges">
@@ -155,6 +192,10 @@
 			<div class="binding-grid">
 				<section class="detail-section">
 					<p class="label">Routing</p>
+					<label class="field checkbox-row">
+						<input type="checkbox" checked={isProxyEnabled()} onchange={(event) => handleToggleBindingEnabled((event.currentTarget as HTMLInputElement).checked)} />
+						<span>Enable this proxy</span>
+					</label>
 					<label class="field">
 						<span>Description</span>
 						<input bind:value={description} placeholder="What is this alias for?" />
@@ -296,12 +337,18 @@
 
 	.binding-summary-row {
 		display: grid;
-		grid-template-columns: minmax(0, 1.7fr) auto auto auto;
-		gap: 1rem;
+		grid-template-columns: auto minmax(0, 1.8fr) auto minmax(0, 1fr) auto;
+		gap: 0.75rem;
 		align-items: center;
 		padding: 0.9rem 1rem;
 		cursor: pointer;
 		list-style: none;
+	}
+
+	.binding-summary-enable {
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	.binding-summary-row::-webkit-details-marker {
@@ -339,11 +386,22 @@
 	}
 
 	.binding-row-stats {
-		display: grid;
-		grid-template-columns: repeat(3, auto);
-		gap: 0.9rem;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.45rem;
 		font-size: 0.82rem;
 		color: var(--muted);
+	}
+
+	.binding-stat {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		padding: 0.38rem 0.6rem;
+		border-radius: 999px;
+		background: rgba(18, 32, 43, 0.05);
+		border: 1px solid var(--panel-border);
+		white-space: nowrap;
 	}
 
 	.binding-row-stats strong {
@@ -354,6 +412,85 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.45rem;
+		min-width: 0;
+		justify-content: flex-end;
+	}
+
+	.binding-toggle-action {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.55rem;
+		padding: 0.45rem 0.6rem;
+		border-radius: 999px;
+		border: 1px solid var(--panel-border);
+		background: rgba(18, 32, 43, 0.05);
+		box-shadow: none;
+		font-size: 0.82rem;
+		font-weight: 700;
+		color: var(--muted);
+		white-space: nowrap;
+		flex: 0 0 auto;
+		transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+	}
+
+	.binding-toggle-switch {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		width: 2rem;
+		height: 1.15rem;
+		padding: 0.1rem;
+		border-radius: 999px;
+		background: rgba(18, 32, 43, 0.18);
+		transition: background 140ms ease;
+	}
+
+	.binding-toggle-knob {
+		width: 0.95rem;
+		height: 0.95rem;
+		border-radius: 999px;
+		background: #ffffff;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
+		transform: translateX(0);
+		transition: transform 140ms ease;
+	}
+
+	.binding-toggle-copy {
+		min-width: 1.7rem;
+		text-align: left;
+	}
+
+	.binding-enable-action {
+		color: var(--ok);
+		border-color: color-mix(in srgb, var(--ok) 18%, var(--panel-border));
+		background: color-mix(in srgb, var(--ok) 7%, white);
+	}
+
+	.binding-enable-action .binding-toggle-switch {
+		background: color-mix(in srgb, var(--ok) 32%, white);
+	}
+
+	.binding-disable-action {
+		color: var(--danger);
+		border-color: color-mix(in srgb, var(--danger) 18%, var(--panel-border));
+		background: color-mix(in srgb, var(--danger) 7%, white);
+	}
+
+	.binding-disable-action .binding-toggle-switch {
+		background: color-mix(in srgb, var(--danger) 32%, white);
+	}
+
+	.binding-disable-action .binding-toggle-knob {
+		transform: translateX(0.85rem);
+	}
+
+	.binding-enable-action:hover,
+	.binding-disable-action:hover {
+		transform: none;
+		box-shadow: none;
+		filter: none;
+		background: rgba(18, 32, 43, 0.08);
 	}
 
 	.binding-row-toggle {
@@ -466,8 +603,12 @@
 			grid-template-columns: 1fr;
 		}
 
+		.binding-summary-enable {
+			justify-content: start;
+		}
+
 		.binding-row-stats {
-			grid-template-columns: repeat(3, minmax(0, auto));
+			justify-content: start;
 		}
 	}
 
@@ -477,8 +618,7 @@
 		}
 
 		.binding-row-stats {
-			grid-template-columns: 1fr;
-			gap: 0.25rem;
+			gap: 0.35rem;
 		}
 
 		.list-row {

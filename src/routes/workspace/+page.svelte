@@ -7,6 +7,7 @@
 	let realAddress = $state('');
 	let isBrowsable = $state(true);
 	let wildcardAutoCreate = $state(false);
+	let search = $state('');
 
 	$effect(() => {
 		if (!domain && $workspace.dashboard.availableDomains.length > 0) {
@@ -34,6 +35,42 @@
 		localPart = '';
 		wildcardAutoCreate = false;
 	}
+
+	function matchesProxySearch(binding: (typeof $workspace.dashboard.bindings)[number], term: string) {
+		const normalized = term.trim().toLowerCase();
+		if (!normalized) {
+			return true;
+		}
+
+		const usedOnList = $workspace.dashboard.usedOn.find((entry) => entry.proxyBindingId === binding.id)?.list ?? [];
+		const haystack = [
+			binding.proxyAddress,
+			binding.description,
+			binding.callbackUrl,
+			...binding.realAddresses.map((address) => address.email),
+			...usedOnList
+		]
+			.join(' ')
+			.toLowerCase();
+
+		return haystack.includes(normalized);
+	}
+
+	function isDisabledProxy(binding: (typeof $workspace.dashboard.bindings)[number]) {
+		return !binding.realAddresses.some((address) => address.isEnabled);
+	}
+
+	const filteredEnabledBindings = $derived(
+		$workspace.dashboard.bindings.filter(
+			(binding) => !isDisabledProxy(binding) && matchesProxySearch(binding, search)
+		)
+	);
+
+	const filteredDisabledBindings = $derived(
+		$workspace.dashboard.bindings.filter(
+			(binding) => isDisabledProxy(binding) && matchesProxySearch(binding, search)
+		)
+	);
 </script>
 
 <svelte:head>
@@ -88,8 +125,12 @@
 	</div>
 </section>
 
+<section class="panel search-panel compact-search-panel">
+	<input bind:value={search} placeholder="Search proxies, descriptions, destinations, or tags" />
+</section>
+
 <div class="proxies-list">
-	{#each $workspace.dashboard.bindings as binding}
+	{#each filteredEnabledBindings as binding}
 		<ProxyBindingCard
 			binding={binding}
 			usedOnList={$workspace.dashboard.usedOn.find((entry) => entry.proxyBindingId === binding.id)?.list ?? []}
@@ -99,9 +140,79 @@
 			receivedDetailsById={$workspace.dashboard.receivedDetailsById}
 		/>
 	{/each}
+	{#if filteredDisabledBindings.length > 0}
+		<section class="panel disabled-panel">
+			<details open={search.trim().length > 0}>
+				<summary>
+					<span>Disabled proxies</span>
+					<span class="pill neutral-pill disabled-count">{filteredDisabledBindings.length}</span>
+				</summary>
+				<div class="disabled-list">
+					{#each filteredDisabledBindings as binding}
+						<ProxyBindingCard
+							binding={binding}
+							usedOnList={$workspace.dashboard.usedOn.find((entry) => entry.proxyBindingId === binding.id)?.list ?? []}
+							savedPassword={$workspace.dashboard.passwords.find((entry) => entry.relatedToId === binding.id)?.password ?? ''}
+							contacts={$workspace.dashboard.contactsByBinding[binding.id] ?? []}
+							receivedLinks={$workspace.dashboard.receivedLinksByBinding[binding.id] ?? []}
+							receivedDetailsById={$workspace.dashboard.receivedDetailsById}
+						/>
+					{/each}
+				</div>
+			</details>
+		</section>
+	{/if}
+	{#if filteredEnabledBindings.length === 0 && filteredDisabledBindings.length === 0}
+		<section class="panel empty-panel">
+			<p class="eyebrow">No matches</p>
+			<h2>No proxies match that search</h2>
+		</section>
+	{/if}
 </div>
 
 <style>
+	.compact-search-panel {
+		padding: 0.85rem 1rem;
+	}
+
+	.compact-search-panel input {
+		margin: 0;
+	}
+
+	.disabled-panel {
+		padding: 0;
+		overflow: hidden;
+	}
+
+	.disabled-panel details {
+		padding: 0;
+	}
+
+	.disabled-panel summary {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		padding: 0.95rem 1rem;
+		cursor: pointer;
+		list-style: none;
+	}
+
+	.disabled-panel summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.disabled-count {
+		min-width: 2rem;
+		justify-content: center;
+	}
+
+	.disabled-list {
+		display: grid;
+		gap: 1rem;
+		padding: 0 1rem 1rem;
+	}
+
 	.compact-create-panel {
 		display: grid;
 		gap: 0.75rem;
