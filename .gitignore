@@ -1,3 +1,4 @@
+test-results
 node_modules
 
 # Output
@@ -16,8 +17,10 @@ Thumbs.db
 .env
 .env.*
 !.env.example
-!.env.test
 
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Local debug artifacts
+debug-login-flow.*

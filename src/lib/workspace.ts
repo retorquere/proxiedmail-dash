@@ -133,7 +133,7 @@ async function safe<T>(factory: () => Promise<T>, fallback: T): Promise<T> {
 
 async function refreshDashboard() {
 	const state = get(store);
-	if (!state.session.apiToken) {
+	if (!state.session.apiToken && !state.session.oauthToken) {
 		setDashboard(createEmptyDashboard());
 		patch({
 			isAuthenticated: false,
@@ -228,7 +228,7 @@ export const workspace = {
 			const bearerToken = oauthToken.startsWith('Bearer ') ? oauthToken : `Bearer ${oauthToken}`;
 			patch({ session: { ...get(store).session, oauthToken: bearerToken } });
 
-			const apiToken = await api.fetchApiToken();
+			const apiToken = await safe(() => api.fetchApiToken(), '');
 
 			const nextSession = { ...get(store).session, oauthToken: bearerToken, apiToken };
 			writeStoredSession(nextSession);

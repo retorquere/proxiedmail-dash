@@ -26,6 +26,26 @@ Run the Svelte and TypeScript checks with:
 npm run check
 ```
 
+Run unit tests with:
+
+```sh
+npm run test:unit
+```
+
+Run end-to-end tests with:
+
+```sh
+npm run test:e2e
+```
+
+Playwright loads test credentials from `.env.test`.
+
+Run both suites with:
+
+```sh
+npm test
+```
+
 ## Build
 
 Create the production build with:

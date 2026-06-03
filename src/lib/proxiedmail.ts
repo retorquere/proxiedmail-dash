@@ -487,6 +487,9 @@ export function createProxiedMailClient(getSession: () => SessionConfig) {
 			if (session.apiToken) {
 				headers.set('Authorization', session.apiToken);
 				headers.set('Token', session.apiToken);
+			} else if (session.oauthToken) {
+				const token = session.oauthToken.startsWith('Bearer ') ? session.oauthToken : `Bearer ${session.oauthToken}`;
+				headers.set('Authorization', token);
 			}
 		}
 
